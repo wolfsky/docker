@@ -1,9 +1,16 @@
-FROM golang:latest as builder
-WORKDIR /go-http-hello-world/
-RUN go get -d -v golang.org/x/net/html 
-ADD https://raw.githubusercontent.com/geetarista/go-http-hello-world/master/hello_world/hello_world.go ./hello_world.go
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
+FROM alpine:latest
+LABEL maintainer="Russ McKendrick <russ@mckendrick.io>"
+LABEL description="This example Dockerfile installs Apache & PHP."
+ENV PHPVERSION 7
  
-FROM scratch 
-COPY --from=builder /go-http-hello-world/app .
-CMD ["./app"]
+RUN apk add --update apache2 php${PHPVERSION}-apache2 php${PHPVERSION} && \
+        rm -rf /var/cache/apk/* && \
+        # mkdir /run/apache2/ && \
+        rm -rf /var/www/localhost/htdocs/index.html && \
+        echo "<?php phpinfo(); ?>" > /var/www/localhost/htdocs/index.php && \
+        chmod 755 /var/www/localhost/htdocs/index.php
+ 
+EXPOSE 80/tcp
+ 
+ENTRYPOINT ["httpd"]
+CMD ["-D", "FOREGROUND"]
